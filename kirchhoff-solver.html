@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Кірхгоф для курсантів</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --prim: #1e3799; --sec: #4a69bd; --light: #f8f9fa; --gray: #6c757d; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height:100vh; color:#333;}
+  header { background:var(--prim); color:white; padding:15px; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);}
+  h1 { margin:0; font-size:1.8em;}
+  .subtitle { font-size:0.9em; opacity:0.9;}
+  .container { max-width:1100px; margin:20px auto; background:white; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);}
+  .toolbar { padding:15px; background:#f1f3f5; border-bottom:1px solid #ddd; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+  button { padding:10px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;}
+  .btn-primary { background:var(--prim); color:white;}
+  .btn-success { background:#27ae60; color:white;}
+  .btn-danger { background:#e74c3c; color:white;}
+  .btn-secondary { background:#95a5a6; color:white;}
+  .tabs { display:flex; background:#ecf0f1;}
+  .tab { flex:1; padding:15px; text-align:center; cursor:pointer; background:#bdc3c7; transition:0.3s;}
+  .tab.active { background:white; font-weight:bold; border-bottom:3px solid var(--prim);}
+  .content-tabs { min-height:520px; }
+  .tab-content { display: none; padding:20px; }
+  .tab-content.active { display: block; }
+  table { width:100%; border-collapse:collapse; margin:20px 0;}
+  th, td { border:1px solid #999; padding:10px; text-align:center;}
+  input[type="number"] { width:80px; padding:6px; border:1px solid #ccc; border-radius:4px;}
+  .result { background:#d5f4e6; padding:20px; border-radius:8px; margin:20px 0; font-size:1.2em;}
+  .save-list { max-height:300px; overflow-y:auto; background:#f9f9f9; padding:10px; border-radius:6px;}
+  .save-item { padding:8px; background:white; margin:5px 0; border-radius:4px; cursor:pointer; display:flex; justify-content:space-between; align-items: center;}
+  footer { text-align:center; padding:20px; color:white; font-size:0.9em;}
+/* МЕДІАЗАПИТИ ДЛЯ ТЕЛЕФОНІВ (ширина екрана до 768px) */
+@media (max-width: 768px) {
+  /* Головний контейнер */
+  .container {
+    margin: 10px;
+    border-radius: 0;
+  }
+  
+  /* Панель інструментів (кнопки) */
+  .toolbar {
+    padding: 10px;
+    /* Дозволяємо кнопкам займати повну ширину на маленьких екранах */
+    flex-direction: column; 
+  }
+  
+  button {
+    width: 100%; /* Кнопки на всю ширину */
+    margin-bottom: 5px; /* Невеликий відступ між кнопками */
+  }
+  
+  /* Вкладки */
+  .tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tab {
+    flex: 1 1 50%; /* Дві вкладки в ряд (50%) */
+    padding: 12px 5px;
+    font-size: 0.9em;
+  }
+  
+  /* Новий стиль для горизонтальної прокрутки таблиці */
+  .table-responsive-wrapper {
+    overflow-x: auto; /* Цей рядок активує горизонтальну прокрутку */
+    padding-bottom: 10px; /* Додатковий відступ для скролбару */
+  }
+
+  /* Таблиця матриці */
+  table {
+    font-size: 0.8em; /* Зменшуємо загальний розмір тексту в таблиці */
+  }
+  
+  /* Поля введення */
+  input[type="number"] {
+    width: 50px; /* Сильно зменшуємо ширину полів введення */
+    padding: 4px;
+  }
+  
+  /* Заголовок (для економії місця) */
+  h1 {
+    font-size: 1.5em;
+  }
+  .subtitle {
+    font-size: 1em;
+  }
+
+  /* Допомога та Результати */
+  .tab-content {
+    padding: 10px;
+  }
+  .result {
+    font-size: 1em;
+    padding: 15px;
+  }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Кірхгоф для курсантів</h1>
+  <div class="subtitle" style="font-size: 1.2em; font-weight: bold;">Електротехніка</div>
+</header>
+<div class="container">
+  <div class="toolbar">
+    <button class="btn-primary" onclick="addRow()">+ Рядок</button>
+    <button class="btn-primary" onclick="addCol()">+ Стовпець</button>
+    <button class="btn-danger" onclick="removeRow()">− Рядок</button>
+    <button class="btn-danger" onclick="removeCol()">− Стовпець</button>
+    <button class="btn-success" onclick="solve()">Розв'язати</button>
+    <button class="btn-secondary" onclick="saveScheme()">Зберегти схему</button>
+    <button class="btn-secondary" onclick="clearAll()">Очистити</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">Матриця рівнянь</div>
+    <div class="tab" onclick="showTab(1)">Збережені схеми</div>
+    <div class="tab" onclick="showTab(2)">Допомога</div>
+  </div>
+  <div class="content-tabs">
+    <div id="tab0" class="tab-content active">
+      <div class="table-responsive-wrapper">
+        <table id="matrix"></table>
+    </div>
+    <div id="result" class="result" style="display:none;"></div>
+   </div>
+    <div id="tab1" class="tab-content">
+      <h3>Збережені схеми</h3>
+      <div id="saved-list" class="save-list"></div>
+    </div>
+    <div id="tab2" class="tab-content">
+      <h3>Інструкція</h3>
+      <p>1. Введіть коефіцієнти та праві частини рівнянь.<br>
+         2. Натисніть «Розв'язати» — отримаєте струми I₁, I₂, ...<br>
+         3. Натисніть «Зберегти схему» — схема збережеться в браузері.<br>
+         4. Працює офлайн! Файл можна зберігати на флешці.</p>
+      <p>Приклад 1 можна завантажити нижче (натисніть кнопку «Приклад 1»).</p>
+      <button class="btn-success" onclick="loadExample1()">Завантажити приклад 1</button>
+    </div>
+  </div>
+</div>
+<footer>
+  © 2025 Кірхгоф для курсантів — працює без інтернету | Версія 2.3
+</footer>
+<script>
+let rows = 4, cols = 4;
+
+function showTab(n) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === n));
+  document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === n));
+  if (n === 1) loadSavedList();
+  document.getElementById('result').style.display = 'none';
+}
+
+function buildTable(prevData) {
+  // prevData: optional {A, b} for preserving on resize
+  const table = document.getElementById('matrix');
+  table.innerHTML = `<tr><th></th>${Array.from({length:cols},(_,i)=>`<th>I<sub>${i+1}</sub></th>`).join('')}<th>=</th><th>Права частина</th></tr>`;
+  for(let i=0; i<rows; i++) {
+    let tr = `<tr><td><strong>${i+1}</strong></td>`;
+    for(let j=0; j<cols; j++) {
+      let val = (prevData && prevData.A && prevData.A[i] && prevData.A[i][j] !== undefined) ? prevData.A[i][j] : 0;
+      tr += `<td><input type="number" step="any" id="a${i}_${j}" value="${val}"></td>`;
+    }
+    let valb = (prevData && prevData.b && prevData.b[i] !== undefined) ? prevData.b[i] : 0;
+    tr += `<td>=</td><td><input type="number" step="any" id="b${i}" value="${valb}"></td></tr>`;
+    table.innerHTML += tr;
+  }
+}
+
+function addRow(){
+  const prev = getMatrix();
+  rows++;
+  buildTable(prev);
+}
+
+function addCol(){
+  const prev = getMatrix();
+  cols++;
+  buildTable(prev);
+}
+
+function removeRow(){
+  if(rows>1){ 
+    const prev = getMatrix();
+    rows--; 
+    buildTable(prev); 
+  }
+}
+
+function removeCol(){
+  if(cols>1){
+    const prev = getMatrix();
+    cols--;
+    buildTable(prev);
+  }
+}
+
+function clearAll(){
+  buildTable();
+  document.getElementById('result').style.display='none';
+}
+
+function getMatrix() {
+  let A = [], b = [];
+  for(let i=0; i<rows; i++) {
+    let row = [];
+    for(let j=0; j<cols; j++) {
+      let e = document.getElementById(`a${i}_${j}`);
+      row.push( e ? (parseFloat(e.value)||0) : 0 );
+    }
+    A.push(row);
+    let eb = document.getElementById(`b${i}`);
+    b.push( eb ? (parseFloat(eb.value)||0) : 0 );
+  }
+  return {A, b};
+}
+
+// Метод Гаусса з частковим вибором, з перевіркою на нуль
+function gaussSolve(A, b) {
+  let n = A.length;
+  let m = A[0].length;
+  let x = new Array(m).fill(0);
+  let aug = A.map((row,i)=>[...row, b[i]]);
+
+  for(let i=0; i<n; i++) {
+    // Пошук максимального елемента
+    let max = i;
+    for(let k=i+1; k<n; k++) 
+      if(Math.abs(aug[k][i]) > Math.abs(aug[max][i])) 
+        max = k;
+    if (Math.abs(aug[max][i]) < 1e-14) 
+      return {error: `Нульовий ведучий елемент у рядку ${i+1}. Система вироджена!`};
+
+    [aug[i], aug[max]] = [aug[max], aug[i]];
+
+    for(let k=i+1; k<n; k++) {
+      let c = -aug[k][i]/aug[i][i];
+      for(let j=i; j<=m; j++) {
+        if(i===j) aug[k][j]=0;
+        else aug[k][j]+=c*aug[i][j];
+      }
+    }
+  }
+
+  for(let i=n-1; i>=0; i--) {
+    x[i]=aug[i][m];
+    for(let j=i+1;j<m;j++) x[i]-=aug[i][j]*x[j];
+    if (Math.abs(aug[i][i]) < 1e-14) 
+      return {error: `Ділення на нуль у рядку ${i+1}. Перевірте матрицю.`};
+    x[i]/=aug[i][i];
+  }
+  return {x};
+}
+
+function solve() {
+  const {A, b} = getMatrix();
+  if(A.some(row => row.every(v => v === 0) && b[A.indexOf(row)] !== 0)) {
+    document.getElementById('result').innerHTML = '<p style="color:red;">Система несумісна!</p>';
+    document.getElementById('result').style.display = 'block';
+    return;
+  }
+  const result = gaussSolve(A.map(r=>[...r]), b.slice());
+  if (result.error) {
+    document.getElementById('result').innerHTML = `<p style="color:red;">${result.error}</p>`;
+    document.getElementById('result').style.display = 'block';
+    return;
+  }
+  let out = '<p>Результати:</p>';
+  result.x.forEach((val,i)=> out += `I<sub>${i+1}</sub> = <b>${val.toFixed(4)} А</b><br>`);
+  document.getElementById('result').innerHTML = out;
+  document.getElementById('result').style.display = 'block';
+}
+
+function saveScheme() {
+  const name = prompt("Назва схеми:", "Схема " + new Date().toLocaleDateString());
+  if(!name) return;
+  const data = { rows, cols, matrix: getMatrix(), name };
+  try {
+    let saved = JSON.parse(localStorage.getItem('kirchhoff-schemes') || '[]');
+    saved.push(data);
+    localStorage.setItem('kirchhoff-schemes', JSON.stringify(saved));
+    loadSavedList();
+    alert("Схему збережено!");
+  } catch(e) {
+    alert("Помилка збереження: " + e.message);
+  }
+}
+
+function loadSavedList() {
+  const list = document.getElementById('saved-list');
+  let saved = [];
+  try {
+    saved = JSON.parse(localStorage.getItem('kirchhoff-schemes') || '[]');
+  } catch(e){ saved = []; }
+  list.innerHTML = saved.length ? saved.map((s,i)=>`
+    <div class="save-item" onclick="loadScheme(${i})">
+      <span>${s.name}</span>
+      <button class="btn-danger" style="padding:4px 8px;font-size:10px;" onclick="event.stopPropagation();deleteScheme(${i})">×</button>
+    </div>`).join('') : '<i>Немає збережених схем</i>';
+}
+
+function loadScheme(i) {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem('kirchhoff-schemes') || '[]');
+  } catch(e) { saved = []; }
+  const s = saved[i];
+  rows = s.rows; cols = s.cols;
+  buildTable(s.matrix);
+  showTab(0);
+  alert("Схему «" + s.name + "» завантажено!");
+}
+
+function deleteScheme(i) {
+  if(confirm("Видалити схему?")) {
+    let saved = [];
+    try {
+      saved = JSON.parse(localStorage.getItem('kirchhoff-schemes') || '[]');
+    } catch(e){}
+    saved.splice(i,1);
+    localStorage.setItem('kirchhoff-schemes', JSON.stringify(saved));
+    loadSavedList();
+  }
+}
+
+function loadExample1() {
+  rows = 4; cols = 4;
+  // Дані прикладу
+  const data = [
+    [1, -1, 0, -1, 1],
+    [-1, 1, 1, 0, 0],
+    [10, 10, 0, 0, 40],
+    [0, -10, 5, 10, 10]
+  ];
+  let A = data.map(row => row.slice(0,4));
+  let b = data.map(row => row[4]);
+  buildTable({A, b});
+  showTab(0);
+  const url = "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_uk.html";
+  const message = "Приклад 1 завантажено!\nПісля розв'язання отримаєте всі значення для I.\n\n" +
+                  "Для порівняння результатів, перейдіть на Phet:\n" + url;
+                  
+  if (confirm(message)) {
+      window.open(url, '_blank');
+  }
+}
+
+buildTable();
+loadSavedList();
+</script>
+</body>
+</html>
